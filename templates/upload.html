@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clip Fusion</title>
+    <style>
+        /* Your existing styles */
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f2f5;
+        }
+        .container {
+            text-align: center;
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            max-width: 600px;
+            width: 100%;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+        .drop-zone, .upload-area {
+            border: 2px dashed #007bff;
+            padding: 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            background-color: #f8f9fa;
+            transition: background-color 0.3s, border-color 0.3s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-sizing: border-box;
+        }
+        .drop-zone.hover, .upload-area.hover {
+            background-color: #e9ecef;
+            border-color: #0056b3;
+        }
+        .drop-zone p, .upload-area p {
+            margin: 0;
+            color: #007bff;
+            font-size: 1.1em;
+            line-height: 1.5;
+        }
+        .file-input {
+            display: none;
+        }
+        .progress-bar-container, .processing-bar-container {
+            display: none;
+            margin-top: 20px;
+            height: 10px;
+            background-color: #e9ecef;
+            border-radius: 5px;
+            overflow: hidden;
+            position: relative;
+        }
+        .progress-bar, .processing-bar {
+            height: 100%;
+            background-color: #007bff;
+            transition: width 0.3s;
+        }
+        .progress-bar {
+            background-color: #007bff;
+        }
+        .processing-bar {
+            background-color: #28a745;
+        }
+        .progress-text, .processing-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #ffffff;
+            font-size: 0.8em;
+        }
+        .filename-display {
+            margin-top: 10px;
+            color: #333;
+            font-size: 1em;
+        }
+        button {
+            display: inline-block;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            color: #ffffff;
+            background-color: #007bff;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s, box-shadow 0.3s;
+            margin-top: 20px;
+        }
+        button:hover {
+            background-color: #0056b3;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        #status {
+            margin-top: 20px;
+            color: #333;
+        }
+        .hide {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Upload Your Video</h1>
+
+        <div class="drop-zone" id="drop-zone">
+            <p>Drag & drop your file here or click to select a file</p>
+            <input type="file" id="file-input" name="file" class="file-input" accept="video/*">
+        </div>
+
+        <div class="upload-area hide" id="upload-area">
+            <p>File uploaded: <span id="filename-display"></span></p>
+            <button id="change-file-btn">Change File</button>
+        </div>
+
+        <div class="progress-bar-container" id="progress-bar-container">
+            <div class="progress-bar" id="progress-bar"></div>
+            <div class="progress-text" id="progress-text">0%</div>
+        </div>
+
+        <button id="process-btn" class="hide" disabled>Process Video</button>
+
+        <div class="processing-bar-container" id="processing-bar-container">
+            <div class="processing-bar" id="processing-bar"></div>
+            <div class="processing-text" id="processing-text">0%</div>
+        </div>
+
+        <div id="status"></div>
+    </div>
+
+    <script>
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const uploadArea = document.getElementById('upload-area');
+        const progressBar = document.getElementById('progress-bar');
+        const progressBarContainer = document.getElementById('progress-bar-container');
+        const progressText = document.getElementById('progress-text');
+        const processingBar = document.getElementById('processing-bar');
+        const processingBarContainer = document.getElementById('processing-bar-container');
+        const processingText = document.getElementById('processing-text');
+        const processBtn = document.getElementById('process-btn');
+        const status = document.getElementById('status');
+        const filenameDisplay = document.getElementById('filename-display');
+        const changeFileBtn = document.getElementById('change-file-btn');
+
+        let uploadedFileName = '';  // Variable to hold the uploaded filename
+
+        // File drag and drop handlers
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        dropZone.addEventListener('dragover', (event) => {
+            event.preventDefault();
+            dropZone.classList.add('hover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('hover');
+        });
+
+        dropZone.addEventListener('drop', (event) => {
+            event.preventDefault();
+            dropZone.classList.remove('hover');
+            const files = event.dataTransfer.files;
+            if (files.length > 0) {
+                uploadFile(files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+
+                // Check the file type
+                if (!file.type.startsWith('video/')) {
+                    alert('Please upload a valid video file.');
+                    fileInput.value = '';  // Clear the file input
+                    return;
+                }
+
+                uploadFile(file);
+            }
+        });
+
+        // Upload file function
+        function uploadFile(file) {
+            // Check if the file is a video
+            if (!file.type.startsWith('video/')) {
+                alert('Please upload a valid video file.');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', '/upload', true);
+
+            xhr.upload.onprogress = (event) => {
+                if (event.lengthComputable) {
+                    const percentComplete = (event.loaded / event.total) * 100;
+                    progressBar.style.width = `${percentComplete}%`;
+                    progressText.textContent = `${Math.round(percentComplete)}%`;
+                    progressBarContainer.style.display = 'block';
+                }
+            };
+
+            xhr.onload = () => {
+                if (xhr.status === 200) {
+                    uploadedFileName = file.name;
+                    console.log('File uploaded:', uploadedFileName); // Debugging statement
+                    filenameDisplay.textContent = file.name;
+                    dropZone.style.display = 'none';  // Hide drag-and-drop view
+                    uploadArea.classList.remove('hide');  // Show upload area
+                    progressBarContainer.style.display = 'none';  // Hide upload progress bar
+                    processBtn.disabled = false;  // Enable process button after upload
+                    processBtn.classList.remove('hide');  // Show process button
+                    status.textContent = 'Upload complete!';
+                } else {
+                    status.textContent = 'Error during upload.';
+                }
+            };
+
+            xhr.onerror = () => {
+                status.textContent = 'Upload failed. Please try again.';
+            };
+
+            xhr.send(formData);
+        }
+
+
+        // Process video function
+        processBtn.addEventListener('click', () => {
+            if (!uploadedFileName) {
+                alert('No file to process.');
+                return;
+            }
+
+            status.textContent = 'Processing video...';
+            processingBar.style.width = '0%';  // Reset processing progress bar
+            processingText.textContent = '0%';
+            processingBarContainer.style.display = 'block';  // Show processing progress bar
+
+            // Send a POST request to process the video
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', `/process/${uploadedFileName}`, true);
+
+            xhr.onprogress = (event) => {
+                if (event.lengthComputable) {
+                    const percentComplete = (event.loaded / event.total) * 100;
+                    processingBar.style.width = `${percentComplete}%`;
+                    processingText.textContent = `${Math.round(percentComplete)}%`;
+                }
+            };
+
+            // xhr.send();
+            xhr.onload = () => {
+                if (xhr.status === 200) {
+                    status.textContent = 'Processing complete! Redirecting to results...';
+                    
+                    // Redirect to results page
+
+                    let folderName = uploadedFileName.split('.').slice(0, -1).join('.');
+
+                    setTimeout(() => {
+                        // window.location.href = '/results';
+
+                        
+
+                        // Redirect to the Processed Chunks page and pass the folder name as a query parameter
+                        window.location.href = `/results?folder=${folderName}`;
+                    }, 2000);
+                } else {
+                    status.textContent = 'Processing failed. Please try again.';
+                }
+            };
+
+            xhr.onerror = () => {
+                status.textContent = 'Processing failed. Please try again.';
+            };
+
+            xhr.send(JSON.stringify({ fileName: uploadedFileName }));
+        });
+
+        // Change file function
+        changeFileBtn.addEventListener('click', () => {
+            console.log('Change File button clicked');
+            
+            dropZone.style.display = 'block';  // Show drag-and-drop view
+            uploadArea.classList.add('hide');  // Hide upload area
+            processBtn.classList.add('hide');  // Hide process button
+            progressBarContainer.style.display = 'none';  // Hide progress bar
+            processingBarContainer.style.display = 'none';  // Hide processing progress bar
+            status.textContent = '';  // Clear status
+
+            if (uploadedFileName) {
+                const encodedFileName = encodeURIComponent(uploadedFileName);
+                const url = `/upload/${encodedFileName}`;
+                console.log(`Attempting to delete file at URL: ${url}`);
+                const xhr = new XMLHttpRequest();
+                xhr.open('DELETE', url, true);
+                xhr.onload = () => {
+                    if (xhr.status === 200) {
+                        console.log('Uploaded file removed successfully.');
+                        uploadedFileName = ''; // Clear filename after successful deletion
+                    } else {
+                        console.error('Error removing uploaded file:', xhr.responseText);
+                    }
+                };
+                xhr.onerror = () => {
+                    console.error('Error during DELETE request.');
+                };
+                xhr.send();
+            } else {
+                console.log('No file to delete.');
+            }
+        });
+
+
+
+    </script>
+</body>
+</html>

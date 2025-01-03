@@ -1,0 +1,10 @@
+image: python:3.9.6
+
+pipelines:
+  main:
+    - step:
+        name: Deploy to Heroku
+        script:
+          - echo $HEROKU_API_KEY | heroku auth:token
+          - git remote add heroku https://git.heroku.com/clip-fusion.git
+          - git push heroku main

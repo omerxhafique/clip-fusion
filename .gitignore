@@ -1,0 +1,51 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+venv/
+ENV/
+env/
+.venv/
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+
+# Logs
+*.log
+
+# Local development
+*.env
+.env
+
+# Heroku
+*.env
+Procfile
+
+# Uploads and processed files
+/upload/
+/processed/
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Python profiler output
+profiler.log
+
+# Pytest cache and coverage files
+.pytest_cache/
+coverage.xml
+htmlcov/
+.coverage
+
+# Jupyter Notebooks checkpoints
+.ipynb_checkpoints/
+
+# IDE specific files (like VSCode)
+.vscode/
+.idea/
+*.mp4

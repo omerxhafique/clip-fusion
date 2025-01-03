@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Processed Chunks</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f2f5;
+        }
+        .container {
+            text-align: center;
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            max-width: 800px;
+            width: 100%;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .chunk-list {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+        .chunk-list li {
+            margin: 10px 0;
+        }
+        .chunk-list a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        .chunk-list a:hover {
+            text-decoration: underline;
+        }
+        .back-btn {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            color: #ffffff;
+            background-color: #007bff;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s;
+        }
+        .back-btn:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Processed Chunks</h1>
+
+        <ul class="chunk-list" id="chunk-list">
+            <!-- Chunks will be listed here -->
+        </ul>
+
+        <button class="back-btn" onclick="window.location.href = '/'">Back to Upload</button>
+    </div>
+
+    <script>
+        // Helper function to get query parameters from the URL
+        function getQueryParam(param) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(param);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const chunkList = document.getElementById('chunk-list');
+            const folderName = getQueryParam('folder');  // Get folder name from URL
+
+            if (folderName) {
+                // Fetch the processed chunks list from the specific folder
+                fetch(`/get_processed_chunks?folder=${folderName}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.chunks && data.chunks.length > 0) {
+                            data.chunks.forEach(chunk => {
+                                const li = document.createElement('li');
+                                const a = document.createElement('a');
+                                a.href = `/download/${folderName}/${chunk.fileName}`;
+                                a.textContent = chunk.fileName;
+                                a.download = chunk.fileName;
+                                li.appendChild(a);
+                                chunkList.appendChild(li);
+                            });
+                        } else {
+                            chunkList.innerHTML = '<li>No chunks available.</li>';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching chunks:', error);
+                        chunkList.innerHTML = '<li>Error loading chunks.</li>';
+                    });
+            } else {
+                chunkList.innerHTML = '<li>Folder not specified.</li>';
+            }
+        });
+    </script>
+
+</body>
+</html>
